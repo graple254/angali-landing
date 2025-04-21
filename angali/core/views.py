@@ -2,6 +2,13 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 import json
 from .models import *
+from django.shortcuts import render
+
+
+
+def home(request):
+    return render(request, 'files/index.html')
+
 
 @csrf_exempt
 def track_start(request):
@@ -39,4 +46,3 @@ def track_end(request):
                 scroll_depth=data['max_scroll']
             )
     return JsonResponse({"status": "ended"})
-

@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.utils.html import format_html
 from django.utils.timesince import timesince
 from django.utils import timezone
-from .models import Visitor, VisitorSession, PageInteraction
+from .models import *
 import datetime
 
 # Inline for VisitorSession to display within Visitor admin
@@ -135,3 +135,158 @@ class PageInteractionAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         # Optimize query by selecting related session and visitor
         return super().get_queryset(request).select_related('session__visitor')
+    
+
+# Start of Website or Landing Page Dynamic Content Models Admins 👇 ###############################################################################################################
+    
+
+# --- Inlines ---
+
+class FooterSectionInline(admin.TabularInline):
+    model = FooterSection
+    extra = 1
+    show_change_link = True
+
+class FooterLinkInline(admin.TabularInline):
+    model = FooterLink
+    extra = 1
+
+class FooterLinkInlineForSection(admin.TabularInline):
+    model = FooterLink
+    extra = 1
+    fk_name = 'section'
+
+# --- Admins ---
+
+@admin.register(HeroSection)
+class HeroSectionAdmin(admin.ModelAdmin):
+    list_display = ('headline', 'cta_text', 'is_active', 'background_image_preview')
+    list_filter = ('is_active',)
+    search_fields = ('headline', 'subheadline', 'cta_text')
+    readonly_fields = ('background_image_preview',)
+    fieldsets = (
+        (None, {
+            'fields': ('headline', 'subheadline', 'cta_text', 'cta_link', 'is_active')
+        }),
+        ('Background', {
+            'fields': ('background_image', 'background_image_preview')
+        }),
+    )
+
+    def background_image_preview(self, obj):
+        if obj.background_image:
+            return format_html('<img src="{}" style="max-height:80px; max-width:200px;" />', obj.background_image.url)
+        return "-"
+    background_image_preview.short_description = "Background Preview"
+
+@admin.register(SectionContent)
+class SectionContentAdmin(admin.ModelAdmin):
+    list_display = ('section', 'title', 'image_preview', 'short_content')
+    list_filter = ('section',)
+    search_fields = ('title', 'content')
+    readonly_fields = ('image_preview',)
+    fieldsets = (
+        (None, {
+            'fields': ('section', 'title', 'content')
+        }),
+        ('Image', {
+            'fields': ('image', 'image_preview')
+        }),
+    )
+
+    def image_preview(self, obj):
+        if obj.image:
+            return format_html('<img src="{}" style="max-height:60px; max-width:120px;" />', obj.image.url)
+        return "-"
+    image_preview.short_description = "Image Preview"
+
+    def short_content(self, obj):
+        if obj.content:
+            return obj.content[:40] + ("..." if len(obj.content) > 40 else "")
+        return ""
+    short_content.short_description = "Content Preview"
+
+@admin.register(Footer)
+class FooterAdmin(admin.ModelAdmin):
+    list_display = ('platform_name', 'tagline', 'rights_reserved_text')
+    search_fields = ('platform_name', 'tagline')
+    inlines = [FooterSectionInline]
+
+@admin.register(FooterSection)
+class FooterSectionAdmin(admin.ModelAdmin):
+    list_display = ('title', 'footer')
+    list_filter = ('title',)
+    search_fields = ('footer__platform_name',)
+    inlines = [FooterLinkInlineForSection]
+
+@admin.register(FooterLink)
+class FooterLinkAdmin(admin.ModelAdmin):
+    list_display = ('label', 'url', 'section', 'order')
+    list_filter = ('section',)
+    search_fields = ('label', 'url')
+    ordering = ('section', 'order')
+
+@admin.register(Testimonial)
+class TestimonialAdmin(admin.ModelAdmin):
+    list_display = ('source_name', 'source_handle', 'short_content', 'show_on_homepage', 'profile_image_preview')
+    list_filter = ('show_on_homepage',)
+    search_fields = ('source_name', 'source_handle', 'content')
+    readonly_fields = ('profile_image_preview',)
+    fieldsets = (
+        (None, {
+            'fields': ('source_name', 'source_handle', 'source_url', 'content', 'show_on_homepage')
+        }),
+        ('Profile Image', {
+            'fields': ('profile_image', 'profile_image_preview')
+        }),
+    )
+
+    def short_content(self, obj):
+        if obj.content:
+            return obj.content[:40] + ("..." if len(obj.content) > 40 else "")
+        return ""
+    short_content.short_description = "Testimonial"
+
+    def profile_image_preview(self, obj):
+        if obj.profile_image:
+            return format_html('<img src="{}" style="max-height:50px; max-width:50px; border-radius:50%;" />', obj.profile_image.url)
+        return "-"
+    profile_image_preview.short_description = "Profile Image"
+
+@admin.register(Partner)
+class PartnerAdmin(admin.ModelAdmin):
+    list_display = ('name', 'website', 'logo_preview')
+    search_fields = ('name',)
+    readonly_fields = ('logo_preview',)
+    fieldsets = (
+        (None, {
+            'fields': ('name', 'website')
+        }),
+        ('Logo', {
+            'fields': ('logo', 'logo_preview')
+        }),
+    )
+
+    def logo_preview(self, obj):
+        if obj.logo:
+            return format_html('<img src="{}" style="max-height:40px; max-width:100px;" />', obj.logo.url)
+        return "-"
+    logo_preview.short_description = "Logo"
+
+@admin.register(CallToActionBlock)
+class CallToActionBlockAdmin(admin.ModelAdmin):
+    list_display = ('title', 'button_text', 'position', 'is_active')
+    list_filter = ('is_active', 'position')
+    search_fields = ('title', 'description', 'button_text', 'position')
+
+@admin.register(FAQItem)
+class FAQItemAdmin(admin.ModelAdmin):
+    list_display = ('question', 'short_answer', 'order')
+    search_fields = ('question', 'answer')
+    ordering = ('order',)
+
+    def short_answer(self, obj):
+        if obj.answer:
+            return obj.answer[:50] + ("..." if len(obj.answer) > 50 else "")
+        return ""
+    short_answer.short_description = "Answer"
